@@ -68,6 +68,21 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.25);}
 .empty{text-align:center;color:var(--muted);font-size:14px;padding:32px 0;}
 .toast{position:fixed;bottom:85px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--green);color:#fff;font-size:14px;font-weight:700;padding:10px 20px;border-radius:30px;opacity:0;transition:all 0.25s;pointer-events:none;white-space:nowrap;z-index:999;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.hist-actions{display:flex;gap:6px;flex-shrink:0;margin-left:8px;}
+.btn-edit,.btn-del{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:none;cursor:pointer;font-family:'Noto Sans TC',sans-serif;}
+.btn-edit{background:rgba(31,111,235,0.15);color:#60a5fa;}
+.btn-del{background:rgba(248,81,73,0.15);color:#f87171;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;width:100%;max-width:400px;}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:16px;}
+.modal-field{margin-bottom:12px;}
+.modal-field label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px;}
+.modal-field input,.modal-field select{width:100%;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;font-family:'Noto Sans TC',sans-serif;}
+.modal-field input:focus,.modal-field select:focus{outline:none;border-color:var(--accent);}
+.modal-btns{display:flex;gap:10px;margin-top:16px;}
+.modal-btns button{flex:1;padding:12px;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;font-family:'Noto Sans TC',sans-serif;}
+.btn-save{background:var(--accent2);color:#fff;}
+.btn-cancel{background:var(--bg3);color:var(--muted);}
 .sum-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
 .sum-card{background:var(--bg3);border-radius:var(--radius-sm);padding:10px;text-align:center;}
 .sum-val{font-size:22px;font-weight:700;font-family:'DM Mono',monospace;}
@@ -181,8 +196,55 @@ function updateLoad(){const rpe=parseInt(document.getElementById('rpe-slider').v
 const SCRIPT_URL='https://script.google.com/macros/s/AKfycbz_w6Qy1NxiQ7ouS-KDY91Tm7tG3NNYw0xbcnup5qkUUqua_bEHlVFkunef3kaVcAT_fQ/exec';
 function submitMorning(){const name=document.getElementById('m-name').value;const date=document.getElementById('m-date').value;if(!name){showToast('請選擇姓名！');return;}const vals=Object.values(ratings);const total=vals.reduce((a,b)=>a+b,0);const avg=(total/vals.length).toFixed(1);const g1=document.getElementById('grip1').value;const g2=document.getElementById('grip2').value;const rec={name,date,status:mStatus,total,avg,grip1:g1,grip2:g2,...ratings};mHistory.unshift(rec);if(mHistory.length>20)mHistory.pop();localStorage.setItem('mHistory',JSON.stringify(mHistory));showToast('儲存中...');fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify({type:'morning',...rec})}).then(()=>showToast('晨間監控已儲存 ✓')).catch(()=>showToast('晨間監控已儲存（離線）'));}
 function submitSrpe(){const name=document.getElementById('s-name').value;const date=document.getElementById('s-date').value;if(!name){showToast('請選擇姓名！');return;}const rpe=parseInt(document.getElementById('rpe-slider').value);const dur=parseInt(document.getElementById('dur-val').value)||0;const load=rpe*dur;const rec={name,date,rpe,duration:dur,load};sHistory.unshift(rec);if(sHistory.length>20)sHistory.pop();localStorage.setItem('sHistory',JSON.stringify(sHistory));showToast('儲存中...');fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify({type:'srpe',...rec})}).then(()=>showToast('訓練負荷已儲存 ✓')).catch(()=>showToast('訓練負荷已儲存（離線）'));}
-function renderHistory(){const mEl=document.getElementById('hist-morning');const sEl=document.getElementById('hist-srpe');if(!mHistory.length){mEl.innerHTML='<div class="empty">尚無紀錄</div>';}else{mEl.innerHTML=mHistory.map(r=>{const a=parseFloat(r.avg);const col=a>=4?'#3fb950':a>=3?'#d29922':'#f85149';const bg=a>=4?'rgba(63,185,80,0.15)':a>=3?'rgba(210,153,34,0.15)':'rgba(248,81,73,0.15)';return '<div class="hist-item"><div><div class="hist-name">'+r.name+'</div><div class="hist-detail">'+r.date+' · '+r.status+' · 均'+r.avg+'</div></div><span class="hist-tag" style="color:'+col+';background:'+bg+';">總分'+r.total+'</span></div>';}).join('');}if(!sHistory.length){sEl.innerHTML='<div class="empty">尚無紀錄</div>';}else{sEl.innerHTML=sHistory.map(r=>{const col=r.load<=150?'#3fb950':r.load<=300?'#d29922':r.load<=500?'#db6d28':'#f85149';const bg=r.load<=150?'rgba(63,185,80,0.15)':r.load<=300?'rgba(210,153,34,0.15)':r.load<=500?'rgba(219,109,40,0.15)':'rgba(248,81,73,0.15)';return '<div class="hist-item"><div><div class="hist-name">'+r.name+'</div><div class="hist-detail">'+r.date+' · RPE'+r.rpe+' × '+r.duration+'min</div></div><span class="hist-tag" style="color:'+col+';background:'+bg+';">'+r.load+'AU</span></div>';}).join('');}}
+function renderHistory(){const mEl=document.getElementById('hist-morning');const sEl=document.getElementById('hist-srpe');if(!mHistory.length){mEl.innerHTML='<div class="empty">尚無紀錄</div>';}else{mEl.innerHTML=mHistory.map((r,i)=>{const a=parseFloat(r.avg);const col=a>=4?'#3fb950':a>=3?'#d29922':'#f85149';const bg=a>=4?'rgba(63,185,80,0.15)':a>=3?'rgba(210,153,34,0.15)':'rgba(248,81,73,0.15)';return '<div class="hist-item"><div><div class="hist-name">'+r.name+'</div><div class="hist-detail">'+r.date+' · '+r.status+' · 均'+r.avg+'</div></div><div class="hist-actions"><span class="hist-tag" style="color:'+col+';background:'+bg+';">總分'+r.total+'</span><button class="btn-edit" onclick="editMorning('+i+')">編輯</button><button class="btn-del" onclick="delMorning('+i+')">刪除</button></div></div>';}).join('');}if(!sHistory.length){sEl.innerHTML='<div class="empty">尚無紀錄</div>';}else{sEl.innerHTML=sHistory.map((r,i)=>{const col=r.load<=150?'#3fb950':r.load<=300?'#d29922':r.load<=500?'#db6d28':'#f85149';const bg=r.load<=150?'rgba(63,185,80,0.15)':r.load<=300?'rgba(210,153,34,0.15)':r.load<=500?'rgba(219,109,40,0.15)':'rgba(248,81,73,0.15)';return '<div class="hist-item"><div><div class="hist-name">'+r.name+'</div><div class="hist-detail">'+r.date+' · RPE'+r.rpe+' × '+r.duration+'min</div></div><div class="hist-actions"><span class="hist-tag" style="color:'+col+';background:'+bg+';">'+r.load+'AU</span><button class="btn-edit" onclick="editSrpe('+i+')">編輯</button><button class="btn-del" onclick="delSrpe('+i+')">刪除</button></div></div>';}).join('');}}
 function goTo(tab){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-'+tab).classList.add('active');document.getElementById('nav-'+tab).classList.add('active');if(tab==='history')renderHistory();}
+
+function delMorning(i){if(!confirm('確定要刪除這筆晨間監控紀錄？')){return;}mHistory.splice(i,1);localStorage.setItem('mHistory',JSON.stringify(mHistory));renderHistory();showToast('已刪除');}
+function delSrpe(i){if(!confirm('確定要刪除這筆訓練負荷紀錄？')){return;}sHistory.splice(i,1);localStorage.setItem('sHistory',JSON.stringify(sHistory));renderHistory();showToast('已刪除');}
+function editMorning(i){
+  const r=mHistory[i];
+  const overlay=document.createElement('div');overlay.className='modal-overlay';
+  overlay.innerHTML='<div class="modal"><div class="modal-title">編輯晨間監控</div>'+
+    '<div class="modal-field"><label>睡眠品質</label><input type="number" id="e-sleep" min="1" max="5" value="'+r.sleep+'"></div>'+
+    '<div class="modal-field"><label>疲勞程度</label><input type="number" id="e-fatigue" min="1" max="5" value="'+r.fatigue+'"></div>'+
+    '<div class="modal-field"><label>心理壓力</label><input type="number" id="e-stress" min="1" max="5" value="'+r.stress+'"></div>'+
+    '<div class="modal-field"><label>身體痠痛</label><input type="number" id="e-muscle" min="1" max="5" value="'+r.muscle+'"></div>'+
+    '<div class="modal-field"><label>握力第一次(KG)</label><input type="number" id="e-grip1" step="0.1" value="'+(r.grip1||'')+'"></div>'+
+    '<div class="modal-field"><label>握力第二次(KG)</label><input type="number" id="e-grip2" step="0.1" value="'+(r.grip2||'')+'"></div>'+
+    '<div class="modal-btns"><button class="btn-save" onclick="saveMorning('+i+')">儲存</button><button class="btn-cancel" onclick="closeModal()">取消</button></div></div>';
+  document.body.appendChild(overlay);
+}
+function editSrpe(i){
+  const r=sHistory[i];
+  const overlay=document.createElement('div');overlay.className='modal-overlay';
+  overlay.innerHTML='<div class="modal"><div class="modal-title">編輯訓練負荷</div>'+
+    '<div class="modal-field"><label>訓練時間(分鐘)</label><input type="number" id="e-dur" min="1" value="'+r.duration+'"></div>'+
+    '<div class="modal-field"><label>RPE (1-10)</label><input type="number" id="e-rpe" min="1" max="10" value="'+r.rpe+'"></div>'+
+    '<div class="modal-btns"><button class="btn-save" onclick="saveSrpe('+i+')">儲存</button><button class="btn-cancel" onclick="closeModal()">取消</button></div></div>';
+  document.body.appendChild(overlay);
+}
+function saveMorning(i){
+  const sleep=parseInt(document.getElementById('e-sleep').value);
+  const fatigue=parseInt(document.getElementById('e-fatigue').value);
+  const stress=parseInt(document.getElementById('e-stress').value);
+  const muscle=parseInt(document.getElementById('e-muscle').value);
+  const grip1=document.getElementById('e-grip1').value;
+  const grip2=document.getElementById('e-grip2').value;
+  const total=sleep+fatigue+stress+muscle;
+  const avg=(total/4).toFixed(1);
+  mHistory[i]={...mHistory[i],sleep,fatigue,stress,muscle,grip1,grip2,total,avg};
+  localStorage.setItem('mHistory',JSON.stringify(mHistory));
+  closeModal();renderHistory();showToast('已更新 ✓');
+}
+function saveSrpe(i){
+  const dur=parseInt(document.getElementById('e-dur').value)||0;
+  const rpe=parseInt(document.getElementById('e-rpe').value)||0;
+  const load=dur*rpe;
+  sHistory[i]={...sHistory[i],duration:dur,rpe,load};
+  localStorage.setItem('sHistory',JSON.stringify(sHistory));
+  closeModal();renderHistory();showToast('已更新 ✓');
+}
+function closeModal(){const o=document.querySelector('.modal-overlay');if(o)o.remove();}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
 updateLoad();updateMSummary();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
