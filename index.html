@@ -68,6 +68,10 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.25);}
 .empty{text-align:center;color:var(--muted);font-size:14px;padding:32px 0;}
 .toast{position:fixed;bottom:85px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--green);color:#fff;font-size:14px;font-weight:700;padding:10px 20px;border-radius:30px;opacity:0;transition:all 0.25s;pointer-events:none;white-space:nowrap;z-index:999;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.admin-only{display:none;}
+.admin-mode .admin-only{display:flex;}
+.admin-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(31,111,235,0.1);border-radius:var(--radius-sm);margin-bottom:12px;font-size:12px;color:#60a5fa;}
+.btn-logout{font-size:11px;padding:3px 10px;border-radius:20px;border:none;background:rgba(248,81,73,0.15);color:#f87171;cursor:pointer;font-family:'Noto Sans TC',sans-serif;}
 .hist-actions{display:flex;gap:6px;flex-shrink:0;margin-left:8px;}
 .btn-edit,.btn-del{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;border:none;cursor:pointer;font-family:'Noto Sans TC',sans-serif;}
 .btn-edit{background:rgba(31,111,235,0.15);color:#60a5fa;}
@@ -159,6 +163,14 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.25);}
     </div>
     <div class="page" id="page-history">
       <div class="sec-head"><div class="sec-title">填寫紀錄</div><div class="sec-sub">本地儲存，最近 20 筆</div></div>
+      <div id="admin-bar" style="display:none;" class="admin-bar">🔓 管理員模式<button class="btn-logout" onclick="adminLogout()">登出</button></div>
+      <div id="admin-login-box" class="card" style="margin-bottom:12px;">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">管理員登入才能編輯或刪除紀錄</div>
+        <div style="display:flex;gap:8px;">
+          <input type="password" id="admin-pw" class="num-input" placeholder="輸入管理員密碼" style="font-size:14px;text-align:left;">
+          <button class="submit-btn" onclick="adminLogin()" style="width:auto;padding:12px 16px;margin-top:0;">登入</button>
+        </div>
+      </div>
       <div class="card"><div class="card-label">晨間監控</div><div id="hist-morning"></div></div>
       <div class="card" style="margin-top:0;"><div class="card-label">訓練負荷</div><div id="hist-srpe"></div></div>
     </div>
@@ -179,6 +191,28 @@ const SCORE_COLORS=[null,'#f85149','#db6d28','#d29922','#3fb950','#3fb950'];
 const SCORE_BG=[null,'rgba(248,81,73,0.15)','rgba(219,109,40,0.15)','rgba(210,153,34,0.15)','rgba(63,185,80,0.15)','rgba(63,185,80,0.15)'];
 let ratings={sleep:3,fatigue:3,stress:3,muscle:3};
 let mStatus='正常測驗';
+let isAdmin=false;
+const ADMIN_PW='Chihyiwu0107';
+function adminLogin(){
+  const pw=document.getElementById('admin-pw').value;
+  if(pw===ADMIN_PW){
+    isAdmin=true;
+    document.getElementById('admin-login-box').style.display='none';
+    document.getElementById('admin-bar').style.display='flex';
+    document.getElementById('page-history').classList.add('admin-mode');
+    document.getElementById('admin-pw').value='';
+    renderHistory();showToast('管理員登入成功 ✓');
+  } else {
+    showToast('密碼錯誤！');
+  }
+}
+function adminLogout(){
+  isAdmin=false;
+  document.getElementById('admin-login-box').style.display='block';
+  document.getElementById('admin-bar').style.display='none';
+  document.getElementById('page-history').classList.remove('admin-mode');
+  renderHistory();showToast('已登出');
+}
 let mHistory=JSON.parse(localStorage.getItem('mHistory')||'[]');
 let sHistory=JSON.parse(localStorage.getItem('sHistory')||'[]');
 const today=new Date().toISOString().split('T')[0];
